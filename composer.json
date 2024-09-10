@@ -1,0 +1,6 @@
+{
+    "name": "essexcountycouncil/ecc_parents",
+    "description": "Customisation for LGD content types with parent-child relationship",
+    "type": "drupal-module",
+    "homepage": "https://github.com/essexcountycouncil/ecc_parents"
+}
