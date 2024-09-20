@@ -1,0 +1,2 @@
+ecc_parents.parents:
+  deriver: 'Drupal\ecc_parents\Plugin\Derivative\EccParentsLocalTasks'
