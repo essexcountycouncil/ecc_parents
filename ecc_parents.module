@@ -20,7 +20,7 @@ function ecc_parents_node_presave(EntityInterface $entity) {
   // Add other content types, when required.
   $content_types = ['localgov_guides_page'];
 
-  if (in_array($entity->bundle(), $content_types) && $entity->isNew()) {
+  if (in_array($entity->bundle(), $content_types)) {
     /** @var \Drupal\ecc_parents\Parents $parents_service */
     $parents_service = \Drupal::service('ecc_parents.parents');
 
