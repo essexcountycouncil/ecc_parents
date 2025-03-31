@@ -88,6 +88,15 @@ function ecc_parents_form_node_form_alter(&$form, FormStateInterface $form_state
   if (isset($form['field_publish_with_parent']) && isset($form['advanced'])) {
     $form['field_publish_with_parent']['#group'] = 'footer';
   }
+  $nid = $form_state->getformObject()->getEntity()->id();
+  if (isset($nid) && !empty($nid)) {
+    $node = \Drupal::entityTypeManager()->getStorage('node')->load($nid);
+    $parents_service = \Drupal::service('ecc_parents.parents');
+    $children = $parents_service->getChildren($node);
+    if (!empty($children)) {
+      $form['#attached']['library'][] = 'ecc_parents/node.form';
+    }
+  }
 }
 
 /**

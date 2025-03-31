@@ -3,3 +3,10 @@ views:
   css:
     theme:
       css/views.css: {}
+
+node.form:
+  js:
+    js/node_form.js: {}
+  dependencies:
+    - core/jquery
+    - core/once
