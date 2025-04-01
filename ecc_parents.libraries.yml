@@ -5,6 +5,7 @@ views:
       css/views.css: {}
 
 node.form:
+  version: 1.0.0
   js:
     js/node_form.js: {}
   dependencies:
