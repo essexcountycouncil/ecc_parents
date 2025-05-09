@@ -101,20 +101,10 @@ function ecc_parents_node_presave(EntityInterface $entity) {
             }
             // Add new contacts.
             $new_child_contacts = array_merge($child_contacts, $new_service_contacts);
-
-            $unique_contacts = [];
-            $seen_ids = [];
-            foreach ($new_child_contacts as $new_child_contact) {
-              $id = $new_child_contact['target_id'];
-              if (!in_array($id, $seen_ids)) {
-                $seen_ids[] = $id;
-                $unique_contacts[] = $new_child_contact;
-              }
-            }
-            $new_child_contacts = $unique_contacts;
+            $unique_contacts = array_unique($new_child_contacts, SORT_REGULAR);
 
             // Save.
-            $child_page->set('localgov_service_contacts', $new_child_contacts);
+            $child_page->set('localgov_service_contacts', $unique_contacts);
             $child_page->save();
           }
         }
