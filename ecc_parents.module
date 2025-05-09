@@ -51,41 +51,56 @@ function ecc_parents_node_presave(EntityInterface $entity) {
 
   // Update pages based on changes to overview.
   if ($entity->bundle() === 'localgov_guides_overview') {
-    $new_service_contacts = $entity->get('localgov_service_contacts')
-      ?->referencedEntities();
-    $old_service_contacts = $entity->original->get('localgov_service_contacts')
-      ?->referencedEntities();
-    if ($old_service_contacts === $new_service_contacts) {
-      // Service contacts are unchanged: nothing to update.
+    // Cascade is default behaviour unless editors turn it off.
+    $cascade_contacts = TRUE;
+    // Check for a switch for editor choice.
+    // If the field isn't there, default behaviour kicks in.
+    if ($entity->hasField('field_guide_cascade_contacts')) {
+
+      if (!empty($entity->get('field_guide_cascade_contacts')->value)) {
+        $cascade_contacts = TRUE;
+      }
+      else {
+         $cascade_contacts = FALSE;
+      }
     }
-    else {
-      // Get all children.
-      $child_pages = $entity->get('localgov_guides_pages')?->referencedEntities();
-      if (!empty($child_pages)) {
-        // Iterate over children.
-        foreach ($child_pages as $child_page) {
-          // For each child, get service contacts.
-          $child_contacts = $child_page->get('localgov_service_contacts')
+    if ($cascade_contacts) {
+      $new_service_contacts = $entity->get('localgov_service_contacts')
       ?->referencedEntities();
-          // For each old contact, remove from child contacts.
-          if (!empty($child_contacts)) {
-            foreach ($old_service_contacts as $i => $old_contact) {
-              foreach ($child_contacts as $child_contact) {
-                if ($child_contact->id() === $old_contact->id()) {
-                  // Remove the old contact from the child node.
-                  unset($child_contacts[$i]);
+      $old_service_contacts = $entity->original->get('localgov_service_contacts')
+        ?->referencedEntities();
+      if ($old_service_contacts === $new_service_contacts) {
+        // Service contacts are unchanged: nothing to update.
+      }
+      else {
+        // Get all children.
+        $child_pages = $entity->get('localgov_guides_pages')?->referencedEntities();
+        if (!empty($child_pages)) {
+          // Iterate over children.
+          foreach ($child_pages as $child_page) {
+            // For each child, get service contacts.
+            $child_contacts = $child_page->get('localgov_service_contacts')
+        ?->referencedEntities();
+            // For each old contact, remove from child contacts.
+            if (!empty($child_contacts)) {
+              foreach ($old_service_contacts as $i => $old_contact) {
+                foreach ($child_contacts as $child_contact) {
+                  if ($child_contact->id() === $old_contact->id()) {
+                    // Remove the old contact from the child node.
+                    unset($child_contacts[$i]);
+                  }
                 }
               }
             }
+            else {
+              $child_contacts = [];
+            }
+            // Add new contacts.
+            $new_child_contacts = array_merge($child_contacts, $new_service_contacts);
+            // Save.
+            $child_page->set('localgov_service_contacts', $new_child_contacts);
+            $child_page->save();
           }
-          else {
-            $child_contacts = [];
-          }
-          // Add new contacts.
-          $new_child_contacts = array_merge($child_contacts, $new_service_contacts);
-          // Save.
-          $child_page->set('localgov_service_contacts', $new_child_contacts);
-          $child_page->save();
         }
       }
     }
