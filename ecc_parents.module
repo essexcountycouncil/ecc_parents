@@ -66,9 +66,9 @@ function ecc_parents_node_presave(EntityInterface $entity) {
     }
     if ($cascade_contacts) {
       $new_service_contacts = $entity->get('localgov_service_contacts')
-      ?->referencedEntities();
+      ?->getValue();
       $old_service_contacts = $entity->original->get('localgov_service_contacts')
-        ?->referencedEntities();
+        ?->getValue();
       if ($old_service_contacts === $new_service_contacts) {
         // Service contacts are unchanged: nothing to update.
       }
@@ -82,12 +82,12 @@ function ecc_parents_node_presave(EntityInterface $entity) {
             foreach ($child_pages as $child_page) {
               // For each child, get service contacts.
               $child_contacts = $child_page->get('localgov_service_contacts')
-          ?->referencedEntities();
+          ?->getValue();
               // For each old contact, remove from child contacts.
               if (!empty($child_contacts)) {
                 foreach ($old_service_contacts as $i => $old_contact) {
                   foreach ($child_contacts as $child_contact) {
-                    if ($child_contact->id() === $old_contact->id()) {
+                    if ($child_contact['target_id'] === $old_contact['target_id']) {
                       // Remove the old contact from the child node.
                       unset($child_contacts[$i]);
                     }
@@ -103,7 +103,7 @@ function ecc_parents_node_presave(EntityInterface $entity) {
               $unique_contacts = [];
               $seen_ids = [];
               foreach ($new_child_contacts as $new_child_contact) {
-                $id = $new_child_contact->id();
+                $id = $new_child_contact['target_id'];
                 if (!in_array($id, $seen_ids)) {
                   $seen_ids[] = $id;
                   $unique_contacts[] = $new_child_contact;
