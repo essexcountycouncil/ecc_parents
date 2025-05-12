@@ -13,8 +13,21 @@ use Drupal\views\ViewExecutable;
  * Implements hook_ENTITY_TYPE_presave().
  *
  * Set service contacts from parent page if not already set.
+ *
+ * Also set service contacts on guide pages if overview page updated.
+ *
+ * Scenarios:
+ * Guide overview old values: paul, mary
+ * changed to
+ * new values: john, pat
+ *
+ * Match old: paul, mary -> john,pat (replace)
+ * Match new: john, pat -> john, pat (replace/no change)
+ * Partial match: paul, sile -> john, sile, pat (remove & copy)
+ * No match: frances -> frances, john, pat (copy)
  */
 function ecc_parents_node_presave(EntityInterface $entity) {
+  // Set guide page contacts based upon parent.
   /** @var \Drupal\node\NodeInterface $entity */
 
   // Add other content types, when required.
@@ -23,7 +36,6 @@ function ecc_parents_node_presave(EntityInterface $entity) {
   if (in_array($entity->bundle(), $content_types)) {
     /** @var \Drupal\ecc_parents\Parents $parents_service */
     $parents_service = \Drupal::service('ecc_parents.parents');
-
     $service_contact = $entity->get('localgov_service_contacts')
       ?->referencedEntities();
     if (empty($service_contact)) {
@@ -32,6 +44,72 @@ function ecc_parents_node_presave(EntityInterface $entity) {
           ->getValue();
         if ($parent_service_contacts) {
           $entity->set('localgov_service_contacts', $parent_service_contacts);
+        }
+      }
+    }
+  }
+
+  // Update pages based on changes to overview.
+  if ($entity->bundle() === 'localgov_guides_overview') {
+    // Cascade is default behaviour unless editors turn it off.
+    $cascade_contacts = TRUE;
+    // Check for a switch for editor choice.
+    // If the field isn't there, default behaviour kicks in.
+    if ($entity->hasField('field_guide_cascade_contacts')) {
+
+      if (!empty($entity->get('field_guide_cascade_contacts')->value)) {
+        $cascade_contacts = TRUE;
+      }
+      else {
+         $cascade_contacts = FALSE;
+      }
+    }
+    if ($cascade_contacts && $entity->hasField('localgov_service_contacts')) {
+      $new_service_contacts = $entity->get('localgov_service_contacts')
+        ?->getValue();
+      $old_service_contacts = $entity->original->get('localgov_service_contacts')
+        ?->getValue();
+      if ($old_service_contacts === $new_service_contacts) {
+        // Service contacts are unchanged: nothing to update.
+        return;
+      }
+
+      // Assuming we haven't bailed, we can proceed to update child pages.
+      // We'll need to bail if there's no child pages field.
+      if ($entity->hasField('localgov_guides_pages')) {
+        // Get all children.
+        $child_pages = $entity->get('localgov_guides_pages')?->referencedEntities();
+        if (!empty($child_pages)) {
+          // Iterate over children.
+          foreach ($child_pages as $child_page) {
+            if (!$child_page->hasField('localgov_service_contacts')) {
+              continue;
+            }
+            // For each child, get service contacts.
+            $child_contacts = $child_page->get('localgov_service_contacts')
+              ?->getValue();
+            // For each old contact, remove from child contacts.
+            if (!empty($child_contacts)) {
+              foreach ($old_service_contacts as $i => $old_contact) {
+                foreach ($child_contacts as $j => $child_contact) {
+                  if ($child_contact['target_id'] === $old_contact['target_id']) {
+                    // Remove the old contact from the child node.
+                    unset($child_contacts[$j]);
+                  }
+                }
+              }
+            }
+            else {
+              $child_contacts = [];
+            }
+            // Add new contacts.
+            $new_child_contacts = array_merge($child_contacts, $new_service_contacts);
+            $unique_contacts = array_unique($new_child_contacts, SORT_REGULAR);
+
+            // Save.
+            $child_page->set('localgov_service_contacts', $unique_contacts);
+            $child_page->save();
+          }
         }
       }
     }
