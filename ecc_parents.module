@@ -67,11 +67,17 @@ function ecc_parents_node_presave(EntityInterface $entity) {
     if ($cascade_contacts && $entity->hasField('localgov_service_contacts')) {
       $new_service_contacts = $entity->get('localgov_service_contacts')
         ?->getValue();
-      $old_service_contacts = $entity->original->get('localgov_service_contacts')
+      // New nodes won't have existing contacts, so we can set an empty array.
+      if (!$entity->isNew()) {
+        $old_service_contacts = $entity->original->get('localgov_service_contacts')
         ?->getValue();
-      if ($old_service_contacts === $new_service_contacts) {
-        // Service contacts are unchanged: nothing to update.
-        return;
+        if ($old_service_contacts === $new_service_contacts) {
+          // Service contacts are unchanged: nothing to update.
+          return;
+        }
+      }
+      else {
+        $old_service_contacts = [];
       }
 
       // Assuming we haven't bailed, we can proceed to update child pages.
